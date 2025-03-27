@@ -1,5 +1,6 @@
 grpcserverapp\Service$2.class
 grpcserverapp\GrpcServer.class
 grpcserverapp\Service$1.class
+grpcserverapp\ForumService.class
 grpcserverapp\ShutdownHook.class
 grpcserverapp\Service.class
