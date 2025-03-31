@@ -15,6 +15,7 @@ public class GrpcServer {
                     // Add one or more services.
                     // The Server can host many services in same TCP/IP port
                     .addService(new Service(svcPort))
+                    .addService(new ForumService(svcPort))
                     .build();
             svc.start();
             System.out.println("Server started on port " + svcPort);
