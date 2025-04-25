@@ -2,6 +2,8 @@ package grpcserverapp;
 
 // chamadas gRPC sem argumento especifico
 
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.google.protobuf.Empty;
 
 // classes criadas automaticamente a partir do ficheiro .proto
@@ -16,6 +18,7 @@ import io.grpc.StatusException; // erros
 import io.grpc.stub.StreamObserver; // streaming de mensagens
 
 // estruturas de dados eficientes para manipulaçao concorrente
+import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -84,6 +87,9 @@ public class ForumService extends ForumGrpc.ForumImplBase {
     public void publishMessage(ForumMessage request, StreamObserver<Empty> responseObserver) {
         String topicName = request.getTopicName();
         String userName = request.getFromUser();
+        StorageOptions storageOptions = StorageOptions.getDefaultInstance();
+        Storage storage = storageOptions.getService();
+        StorageOperations soper = new StorageOperations(storage);
 
         // se o user nao tiver subscrito retorna o erro
         if(!topics.containsKey(topicName) || !topics.get(topicName).containsKey(userName)){
@@ -92,7 +98,20 @@ public class ForumService extends ForumGrpc.ForumImplBase {
 
         // envia a mensagem para todos os users subscritos no topico
         for (StreamObserver<ForumMessage> observer : topics.get(topicName).values()){
-            observer.onNext(request);
+            String[] msg = request.getTxtMsg().split(";");
+            if (msg.length == 1) {
+                observer.onNext(request);
+            }
+            else if (msg.length == 3) {
+                soper.downloadBlobFromBucket(msg[1], msg[2]);
+                observer.onNext(request);
+
+            }
+            else{
+                // se a mensagem não tiver o formato correto, retorna erro
+                responseObserver.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription("Invalid message format")));
+            }
+
         }
 
         // retorna resposta vazia (Empty) para indicar sucesso
